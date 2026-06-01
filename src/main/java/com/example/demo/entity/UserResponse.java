@@ -6,7 +6,6 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import javax.persistence.*;
 import java.time.LocalDateTime;
-import java.util.UUID;
 
 @Data
 @Builder
@@ -16,11 +15,11 @@ import java.util.UUID;
 @Table(name = "user_responses")
 public class UserResponse {
     @Id
-    @GeneratedValue(strategy = GenerationType.AUTO)
-    private UUID id;
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
     
-    private UUID notificationId;
-    private UUID userId;
+    private Long notificationId;
+    private Long userId;
     private String responseType;
     private LocalDateTime responseTime;
 }

@@ -8,10 +8,8 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
 import java.time.LocalDateTime;
 import java.util.List;
-import java.util.UUID;
 
 @Slf4j
 @Service
@@ -28,7 +26,6 @@ public class EmergencyEventService {
     @Transactional
     public EmergencyEvent create(CreateEventRequest request) {
         
-        // Сохраняем событие
         EmergencyEvent event = EmergencyEvent.builder()
                 .title(request.getTitle())
                 .messageText(request.getMessageText())
@@ -39,9 +36,8 @@ public class EmergencyEventService {
         
         event = eventRepository.save(event);
         
-        // Сохраняем гео-зону
         GeoZone zone = GeoZone.builder()
-                .eventId(event.getEventId())
+                .eventId(event.getId())
                 .city(request.getCity())
                 .centerLat(request.getCenterLat())
                 .centerLng(request.getCenterLng())
@@ -50,11 +46,14 @@ public class EmergencyEventService {
         
         geoZoneRepository.save(zone);
         
-        // Отправляем уведомления пользователям в зоне
         List<User> users = userRepository.findAll();
         int notifiedCount = 0;
         
         for (User user : users) {
+            if (user.getLatitude() == null || user.getLongitude() == null) {
+                continue;
+            }
+            
             boolean inside = geoService.insideRadius(
                     user.getLatitude(),
                     user.getLongitude(),
@@ -74,8 +73,8 @@ public class EmergencyEventService {
             );
             
             Notification notification = Notification.builder()
-                    .eventId(event.getEventId())
-                    .userId(user.getUserId())
+                    .eventId(event.getId())
+                    .userId(user.getId())
                     .deliveryStatus(sent ? "SENT" : "FAILED")
                     .sentAt(LocalDateTime.now())
                     .build();
@@ -84,7 +83,7 @@ public class EmergencyEventService {
             notifiedCount++;
         }
         
-        log.info("Event {} created. Notified {} users", event.getEventId(), notifiedCount);
+        log.info("Event {} created. Notified {} users", event.getId(), notifiedCount);
         
         return event;
     }
