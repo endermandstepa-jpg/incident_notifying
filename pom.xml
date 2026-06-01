@@ -48,7 +48,7 @@
 		<dependency>
 			<groupId>org.telegram</groupId>
 			<artifactId>telegrambots</artifactId>
-			<version>${telegram.version}</version>
+			<version>6.8.0</version>
 		</dependency>
 
 		<dependency>
