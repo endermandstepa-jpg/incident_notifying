@@ -2,18 +2,18 @@ package com.emergency.alert.service;
 
 import com.emergency.alert.dto.CreateEventRequest;
 import com.emergency.alert.entity.*;
-
 import com.emergency.alert.repository.*;
-
 import com.emergency.alert.telegram.EmergencyTelegramBot;
-
 import lombok.RequiredArgsConstructor;
-
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
-import java.time.Instant;
+import java.time.LocalDateTime;
 import java.util.List;
+import java.util.UUID;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class EmergencyEventService {
@@ -25,36 +25,36 @@ public class EmergencyEventService {
     private final EmergencyTelegramBot bot;
     private final GeoService geoService;
 
-    public EmergencyEvent create(
-            CreateEventRequest request
-    ) {
-
-        EmergencyEvent event =
-                EmergencyEvent.builder()
-                        .title(request.getTitle())
-                        .messageText(request.getMessageText())
-                        .priority(request.getPriority())
-                        .status("ACTIVE")
-                        .createdAt(Instant.now())
-                        .build();
-
-        eventRepository.save(event);
-
-        GeoZone zone =
-                GeoZone.builder()
-                        .eventId(event.getEventId())
-                        .city(request.getCity())
-                        .centerLat(request.getCenterLat())
-                        .centerLng(request.getCenterLng())
-                        .radiusKm(request.getRadiusKm())
-                        .build();
-
+    @Transactional
+    public EmergencyEvent create(CreateEventRequest request) {
+        
+        // Сохраняем событие
+        EmergencyEvent event = EmergencyEvent.builder()
+                .title(request.getTitle())
+                .messageText(request.getMessageText())
+                .priority(request.getPriority())
+                .status("ACTIVE")
+                .createdAt(LocalDateTime.now())
+                .build();
+        
+        event = eventRepository.save(event);
+        
+        // Сохраняем гео-зону
+        GeoZone zone = GeoZone.builder()
+                .eventId(event.getEventId())
+                .city(request.getCity())
+                .centerLat(request.getCenterLat())
+                .centerLng(request.getCenterLng())
+                .radiusKm(request.getRadiusKm())
+                .build();
+        
         geoZoneRepository.save(zone);
-
+        
+        // Отправляем уведомления пользователям в зоне
         List<User> users = userRepository.findAll();
-
+        int notifiedCount = 0;
+        
         for (User user : users) {
-
             boolean inside = geoService.insideRadius(
                     user.getLatitude(),
                     user.getLongitude(),
@@ -62,28 +62,30 @@ public class EmergencyEventService {
                     zone.getCenterLng(),
                     zone.getRadiusKm()
             );
-
+            
             if (!inside) {
                 continue;
             }
-
+            
             boolean sent = bot.sendEmergency(
                     user.getMessengerId(),
                     event.getTitle(),
                     event.getMessageText()
             );
-
-            notificationRepository.save(
-                    Notification.builder()
-                            .eventId(event.getEventId())
-                            .userId(user.getUserId())
-                            .sentAt(Instant.now())
-                            .deliveryStatus(
-                                    sent ? "SENT" : "FAILED")
-                            .build()
-            );
+            
+            Notification notification = Notification.builder()
+                    .eventId(event.getEventId())
+                    .userId(user.getUserId())
+                    .deliveryStatus(sent ? "SENT" : "FAILED")
+                    .sentAt(LocalDateTime.now())
+                    .build();
+            
+            notificationRepository.save(notification);
+            notifiedCount++;
         }
-
+        
+        log.info("Event {} created. Notified {} users", event.getEventId(), notifiedCount);
+        
         return event;
     }
 }
