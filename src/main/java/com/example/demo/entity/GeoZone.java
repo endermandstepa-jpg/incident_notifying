@@ -1,30 +1,26 @@
 package com.emergency.alert.entity;
 
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
 import javax.persistence.*;
-import lombok.*;
 
-import java.util.UUID;
-
-@Entity
-@Table(name = "geo_zones")
-@Getter
-@Setter
+@Data
+@Builder
 @NoArgsConstructor
 @AllArgsConstructor
-@Builder
+@Entity
+@Table(name = "geo_zones")
 public class GeoZone {
-
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
-    private UUID zoneId;
-
-    private UUID eventId;
-
+    private String id;
+    
+    private String eventId;
     private String city;
-
     private Double centerLat;
-
     private Double centerLng;
-
     private Double radiusKm;
 }
