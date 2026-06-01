@@ -1,34 +1,27 @@
 package com.emergency.alert.entity;
 
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
 import javax.persistence.*;
-import lombok.*;
+import java.time.LocalDateTime;
 
-import java.time.Instant;
-import java.util.UUID;
-
-@Entity
-@Table(name = "emergency_events")
-@Getter
-@Setter
+@Data
+@Builder
 @NoArgsConstructor
 @AllArgsConstructor
-@Builder
+@Entity
+@Table(name = "emergency_events")
 public class EmergencyEvent {
-
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
-    private UUID eventId;
-
+    private String id;
+    
     private String title;
-
-    @Column(columnDefinition = "TEXT")
     private String messageText;
-
     private String priority;
-
     private String status;
-
-    private Instant createdAt;
-
-    private UUID createdBy;
+    private LocalDateTime createdAt;
 }

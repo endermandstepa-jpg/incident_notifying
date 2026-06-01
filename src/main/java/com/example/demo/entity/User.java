@@ -1,34 +1,30 @@
 package com.emergency.alert.entity;
 
-import jakarta.persistence.*;
-import lombok.*;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 
-import java.time.Instant;
-import java.util.UUID;
+import javax.persistence.*;
+import java.time.LocalDateTime;
 
-@Entity
-@Table(name = "users")
-@Getter
-@Setter
+@Data
+@Builder
 @NoArgsConstructor
 @AllArgsConstructor
-@Builder
+@Entity
+@Table(name = "users")
 public class User {
-
     @Id
-    @GeneratedValue(strategy = GenerationType.UUID)
-    private UUID userId;
-
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+    
+    @Column(unique = true)
+    private Long messengerId;  // Telegram user ID
+    
     private String fullName;
-
-    @Column(unique = true, nullable = false)
-    private String messengerId;
-
     private String city;
-
     private Double latitude;
-
     private Double longitude;
-
-    private Instant createdAt;
+    private LocalDateTime registeredAt;
 }

@@ -1,29 +1,25 @@
 package com.emergency.alert.entity;
 
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
 import javax.persistence.*;
-import lombok.*;
 
-import java.time.Instant;
-import java.util.UUID;
-
-@Entity
-@Table(name = "notifications")
-@Getter
-@Setter
+@Data
+@Builder
 @NoArgsConstructor
 @AllArgsConstructor
-@Builder
+@Entity
+@Table(name = "notifications")
 public class Notification {
-
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
-    private UUID notificationId;
-
-    private UUID eventId;
-
-    private UUID userId;
-
-    private Instant sentAt;
-
-    private String deliveryStatus;
+    private String id;
+    
+    private Long eventId;
+    private Long userId;
+    private String status;
+    private LocalDateTime sentAt;
 }
