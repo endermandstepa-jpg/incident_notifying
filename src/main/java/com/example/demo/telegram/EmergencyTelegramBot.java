@@ -1,24 +1,18 @@
-
 package com.emergency.alert.telegram;
 
 import com.emergency.alert.entity.*;
 import com.emergency.alert.repository.*;
-
-import lombok.RequiredArgsConstructor;
-
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
-
 import org.telegram.telegrambots.bots.TelegramLongPollingBot;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
-
 import org.telegram.telegrambots.meta.api.objects.Update;
-
-import java.time.Instant;
+import java.time.LocalDateTime;
 import java.util.Optional;
 
+@Slf4j
 @Component
-@RequiredArgsConstructor
 public class EmergencyTelegramBot extends TelegramLongPollingBot {
 
     private final UserRepository userRepository;
@@ -32,97 +26,63 @@ public class EmergencyTelegramBot extends TelegramLongPollingBot {
     @Value("${telegram.bot.username}")
     private String username;
 
+    public EmergencyTelegramBot(
+            UserRepository userRepository,
+            UserResponseRepository responseRepository,
+            NotificationRepository notificationRepository,
+            EmergencyEventRepository eventRepository) {
+        this.userRepository = userRepository;
+        this.responseRepository = responseRepository;
+        this.notificationRepository = notificationRepository;
+        this.eventRepository = eventRepository;
+    }
+
     @Override
     public void onUpdateReceived(Update update) {
-
-        if (!update.hasMessage()) {
+        if (!update.hasMessage() || !update.getMessage().hasText()) {
             return;
         }
 
-        if (!update.getMessage().hasText()) {
-            return;
-        }
-
-        String text =
-                update.getMessage().getText();
-
-        String chatId =
-                update.getMessage()
-                        .getChatId()
-                        .toString();
+        String text = update.getMessage().getText();
+        String chatId = update.getMessage().getChatId().toString();
 
         if ("/start".equals(text)) {
-
-            send(chatId,
-                    """
-                    Команды:
-                    /create_profile
-                    /delete_profile
-                    /status
-                    """);
-
+            send(chatId, "Команды:\n/create_profile\n/delete_profile\n/status");
             return;
         }
 
         if ("/create_profile".equals(text)) {
-
-            Optional<User> existing =
-                    userRepository.findByMessengerId(chatId);
-
+            Optional<User> existing = userRepository.findByMessengerId(chatId);
             if (existing.isPresent()) {
-
-                send(chatId,
-                        "Профиль уже существует");
-
+                send(chatId, "Профиль уже существует");
                 return;
             }
 
-            User user =
-                    User.builder()
-                            .messengerId(chatId)
-                            .fullName(
-                                    update.getMessage()
-                                            .getFrom()
-                                            .getFirstName())
-                            .city("Unknown")
-                            .latitude(0.0)
-                            .longitude(0.0)
-                            .createdAt(Instant.now())
-                            .build();
+            User user = User.builder()
+                    .messengerId(chatId)
+                    .fullName(update.getMessage().getFrom().getFirstName())
+                    .city("Unknown")
+                    .latitude(0.0)
+                    .longitude(0.0)
+                    .registeredAt(LocalDateTime.now())
+                    .build();
 
             userRepository.save(user);
-
-            send(chatId,
-                    "Профиль создан");
-
+            send(chatId, "Профиль создан");
             return;
         }
 
         if ("/delete_profile".equals(text)) {
-
-            userRepository.findByMessengerId(chatId)
-                    .ifPresent(userRepository::delete);
-
-            send(chatId,
-                    "Профиль удален");
-
+            userRepository.findByMessengerId(chatId).ifPresent(userRepository::delete);
+            send(chatId, "Профиль удален");
             return;
         }
 
         if ("/status".equals(text)) {
-
-            eventRepository
-                    .findTopByOrderByCreatedAtDesc()
+            eventRepository.findTopByOrderByCreatedAtDesc()
                     .ifPresentOrElse(
-                            event -> send(
-                                    chatId,
-                                    event.getTitle()
-                                            + "\n"
-                                            + event.getStatus()),
-                            () -> send(
-                                    chatId,
-                                    "Нет активных ЧС"));
-
+                            event -> send(chatId, event.getTitle() + "\n" + event.getStatus()),
+                            () -> send(chatId, "Нет активных ЧС"));
             return;
         }
 
@@ -135,91 +95,50 @@ public class EmergencyTelegramBot extends TelegramLongPollingBot {
         }
     }
 
-    private void saveResponse(
-            String chatId,
-            String responseType
-    ) {
-
-        Optional<User> userOpt =
-                userRepository.findByMessengerId(chatId);
-
+    private void saveResponse(String chatId, String responseType) {
+        Optional<User> userOpt = userRepository.findByMessengerId(chatId);
         if (userOpt.isEmpty()) {
             return;
         }
 
         User user = userOpt.get();
-
-        Notification notification =
-                notificationRepository
-                        .findTopByUserIdOrderBySentAtDesc(
-                                user.getUserId());
+        Notification notification = notificationRepository.findTopByUserIdOrderBySentAtDesc(user.getId());
 
         if (notification == null) {
             return;
         }
 
-        responseRepository.save(
-                UserResponse.builder()
-                        .notificationId(
-                                notification.getNotificationId())
-                        .userId(user.getUserId())
-                        .responseType(responseType)
-                        .responseTime(Instant.now())
-                        .build()
-        );
+        responseRepository.save(UserResponse.builder()
+                .notificationId(notification.getId())
+                .userId(user.getId())
+                .responseType(responseType)
+                .responseTime(LocalDateTime.now())
+                .build());
 
-        send(chatId,
-                "Ответ сохранен: "
-                        + responseType);
+        send(chatId, "Ответ сохранен: " + responseType);
     }
 
-    public boolean sendEmergency(
-            String chatId,
-            String title,
-            String text
-    ) {
-
+    public boolean sendEmergency(String chatId, String title, String text) {
         try {
-
-            SendMessage message =
-                    new SendMessage();
-
+            SendMessage message = new SendMessage();
             message.setChatId(chatId);
-
-            message.setText(
-                    "ЧС\n\n"
-                            + title
-                            + "\n\n"
-                            + text
-                            + "\n\n"
-                            + "Ответьте SAFE или HELP");
-
+            message.setText("ЧС\n\n" + title + "\n\n" + text + "\n\nОтветьте SAFE или HELP");
             execute(message);
-
             return true;
-
         } catch (Exception e) {
-
+            log.error("Failed to send emergency message: {}", e.getMessage());
             return false;
         }
     }
 
-    private void send(
-            String chatId,
-            String text
-    ) {
-
+    private void send(String chatId, String text) {
         try {
-
-            SendMessage message =
-                    new SendMessage();
-
+            SendMessage message = new SendMessage();
             message.setChatId(chatId);
             message.setText(text);
-
             execute(message);
-
-        } catch (Exception ignored) {
+        } catch (Exception e) {
+            log.error("Failed to send message: {}", e.getMessage());
         }
     }
 

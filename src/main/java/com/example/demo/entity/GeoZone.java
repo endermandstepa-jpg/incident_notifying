@@ -5,7 +5,6 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import javax.persistence.*;
-import java.util.UUID;
 
 @Data
 @Builder
@@ -15,12 +14,10 @@ import java.util.UUID;
 @Table(name = "geo_zones")
 public class GeoZone {
     @Id
-    @GeneratedValue(strategy = GenerationType.AUTO)
-    private UUID id;
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
     
-    @Column(name = "event_id")
-    private UUID eventId;
-    
+    private Long eventId;
     private String city;
     private Double centerLat;
     private Double centerLng;
