@@ -2,6 +2,7 @@ package com.emergency.alert.controller;
 
 import com.emergency.alert.dto.CreateEventRequest;
 import com.emergency.alert.entity.EmergencyEvent;
+import com.emergency.alert.repository.*;
 import com.emergency.alert.service.EmergencyEventService;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
@@ -15,25 +16,24 @@ class EmergencyEventControllerTest {
     private final EmergencyEventController controller =
             new EmergencyEventController(
                     service,
-                    Mockito.mock(com.emergency.alert.repository.EmergencyEventRepository.class),
-                    Mockito.mock(com.emergency.alert.repository.GeoZoneRepository.class),
-                    Mockito.mock(com.emergency.alert.repository.NotificationRepository.class),
-                    Mockito.mock(com.emergency.alert.repository.UserResponseRepository.class),
-                    Mockito.mock(com.emergency.alert.repository.UserRepository.class)
+                    Mockito.mock(EmergencyEventRepository.class),
+                    Mockito.mock(GeoZoneRepository.class),
+                    Mockito.mock(NotificationRepository.class),
+                    Mockito.mock(UserResponseRepository.class),
+                    Mockito.mock(UserRepository.class)
             );
 
     @Test
-    void shouldCallServiceAndReturnEvent() {
+    void shouldCreateEvent() {
 
-        CreateEventRequest req = new CreateEventRequest();
-        req.setTitle("Test");
+        CreateEventRequest request = new CreateEventRequest();
 
         EmergencyEvent event = new EmergencyEvent();
         event.setTitle("Test");
 
         Mockito.when(service.create(Mockito.any())).thenReturn(event);
 
-        EmergencyEvent result = controller.create(req);
+        EmergencyEvent result = controller.create(request);
 
         assertNotNull(result);
         assertEquals("Test", result.getTitle());
