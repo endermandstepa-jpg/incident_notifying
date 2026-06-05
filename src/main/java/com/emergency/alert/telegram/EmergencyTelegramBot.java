@@ -1,13 +1,7 @@
 package com.emergency.alert.telegram;
 
-import com.emergency.alert.entity.EmergencyEvent;
-import com.emergency.alert.entity.Notification;
-import com.emergency.alert.entity.User;
-import com.emergency.alert.entity.UserResponse;
-import com.emergency.alert.repository.EmergencyEventRepository;
-import com.emergency.alert.repository.NotificationRepository;
-import com.emergency.alert.repository.UserRepository;
-import com.emergency.alert.repository.UserResponseRepository;
+import com.emergency.alert.entity.*;
+import com.emergency.alert.repository.*;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
@@ -15,7 +9,6 @@ import org.telegram.telegrambots.bots.TelegramLongPollingBot;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
 import org.telegram.telegrambots.meta.api.objects.Update;
 
-import java.time.LocalDateTime;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -52,9 +45,7 @@ public class EmergencyTelegramBot extends TelegramLongPollingBot {
     @Override
     public void onUpdateReceived(Update update) {
 
-        if (!update.hasMessage() || !update.getMessage().hasText()) {
-            return;
-        }
+        if (!update.hasMessage() || !update.getMessage().hasText()) return;
 
         String text = update.getMessage().getText();
         String chatId = update.getMessage().getChatId().toString();
@@ -74,7 +65,7 @@ public class EmergencyTelegramBot extends TelegramLongPollingBot {
             String[] parts = text.split(",");
 
             if (parts.length < 3) {
-                send(chatId, "Неверный формат. Нужно: Имя, широта, долгота");
+                send(chatId, "Неверный формат");
                 return;
             }
 
@@ -83,24 +74,23 @@ public class EmergencyTelegramBot extends TelegramLongPollingBot {
                     .fullName(parts[0].trim())
                     .latitude(Double.parseDouble(parts[1].trim()))
                     .longitude(Double.parseDouble(parts[2].trim()))
-                    .registeredAt(LocalDateTime.now())
                     .build();
 
             userRepository.save(user);
             waitingProfile.remove(chatId);
-            send(chatId, "Пользователь успешно создан");
+            send(chatId, "Профиль создан");
             return;
         }
 
         if ("/update_profile".equals(text)) {
             waitingUpdateProfile.put(chatId, true);
-            send(chatId, "Введите новые данные: Имя, широта, долгота");
+            send(chatId, "Введите: Имя, широта, долгота");
             return;
         }
 
         if (Boolean.TRUE.equals(waitingUpdateProfile.get(chatId))) {
-            User user = userRepository.findByMessengerId(chatId).orElse(null);
 
+            User user = userRepository.findByMessengerId(chatId).orElse(null);
             if (user == null) {
                 send(chatId, "Сначала создайте профиль");
                 waitingUpdateProfile.remove(chatId);
@@ -108,11 +98,6 @@ public class EmergencyTelegramBot extends TelegramLongPollingBot {
             }
 
             String[] parts = text.split(",");
-
-            if (parts.length < 3) {
-                send(chatId, "Неверный формат. Нужно: Имя, широта, долгота");
-                return;
-            }
 
             user.setFullName(parts[0].trim());
             user.setLatitude(Double.parseDouble(parts[1].trim()));
@@ -126,7 +111,7 @@ public class EmergencyTelegramBot extends TelegramLongPollingBot {
 
         if ("/delete_profile".equals(text)) {
             userRepository.findByMessengerId(chatId).ifPresent(userRepository::delete);
-            send(chatId, "Профиль удален");
+            send(chatId, "Профиль удалён");
             return;
         }
 
@@ -139,17 +124,12 @@ public class EmergencyTelegramBot extends TelegramLongPollingBot {
             return;
         }
 
-        if ("Я в безопасности".equalsIgnoreCase(text)) {
-            saveResponse(chatId, "SAFE");
-            return;
-        }
-
-        if ("Нужна помощь".equalsIgnoreCase(text)) {
-            saveResponse(chatId, "HELP");
-        }
+        if ("Я в безопасности".equalsIgnoreCase(text)) saveResponse(chatId, "SAFE");
+        if ("Нужна помощь".equalsIgnoreCase(text)) saveResponse(chatId, "HELP");
     }
 
     private void saveResponse(String chatId, String type) {
+
         User user = userRepository.findByMessengerId(chatId).orElse(null);
         if (user == null) return;
 
@@ -162,19 +142,17 @@ public class EmergencyTelegramBot extends TelegramLongPollingBot {
                 .notificationId(notification.getId())
                 .userId(user.getId())
                 .responseType(type)
-                .responseTime(LocalDateTime.now())
                 .build());
 
-        send(chatId, "Ответ сохранен");
+        send(chatId, "Ответ сохранён");
     }
 
     public boolean sendEmergency(String chatId, String title, String text) {
         try {
-            SendMessage message = new SendMessage();
-            message.setChatId(chatId);
-            message.setText("ЧС\n\n" + title + "\n\n" + text +
-                    "\n\nОтветьте:\nЯ в безопасности\nНужна помощь");
-            execute(message);
+            SendMessage msg = new SendMessage();
+            msg.setChatId(chatId);
+            msg.setText("ЧС\n\n" + title + "\n\n" + text);
+            execute(msg);
             return true;
         } catch (Exception e) {
             log.error("Telegram error: {}", e.getMessage());
@@ -184,10 +162,10 @@ public class EmergencyTelegramBot extends TelegramLongPollingBot {
 
     private void send(String chatId, String text) {
         try {
-            SendMessage message = new SendMessage();
-            message.setChatId(chatId);
-            message.setText(text);
-            execute(message);
+            SendMessage msg = new SendMessage();
+            msg.setChatId(chatId);
+            msg.setText(text);
+            execute(msg);
         } catch (Exception e) {
             log.error("Telegram error: {}", e.getMessage());
         }
