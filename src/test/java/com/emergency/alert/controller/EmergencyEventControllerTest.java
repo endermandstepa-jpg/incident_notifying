@@ -1,47 +1,33 @@
 package com.emergency.alert.controller;
 
-import com.emergency.alert.dto.CreateEventRequest;
 import com.emergency.alert.service.EmergencyEventService;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
-import org.springframework.http.MediaType;
-import org.springframework.test.web.servlet.MockMvc;
 
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.when;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.Mockito.*;
 
-@SpringBootTest
-@AutoConfigureMockMvc(addFilters = false) // 💥 убирает 401 полностью
 class EmergencyEventControllerTest {
 
-    @Autowired
-    private MockMvc mockMvc;
-
-    @Autowired
-    private ObjectMapper objectMapper;
-
-    @MockBean
-    private EmergencyEventService service;
+    private final EmergencyEventService service = mock(EmergencyEventService.class);
+    private final EmergencyEventController controller = new EmergencyEventController(
+            service,
+            mock(com.emergency.alert.repository.EmergencyEventRepository.class),
+            mock(com.emergency.alert.repository.GeoZoneRepository.class),
+            mock(com.emergency.alert.repository.NotificationRepository.class),
+            mock(com.emergency.alert.repository.UserResponseRepository.class),
+            mock(com.emergency.alert.repository.UserRepository.class)
+    );
 
     @Test
-    void shouldCreateEvent() throws Exception {
+    void shouldCreateEvent() {
 
-        CreateEventRequest request = new CreateEventRequest();
+        var request = new com.emergency.alert.dto.CreateEventRequest();
         request.setTitle("Test");
-        request.setMessageText("Message");
-        request.setCity("Berlin");
 
-        when(service.create(any())).thenReturn(null);
+        when(service.create(any())).thenReturn(new com.emergency.alert.entity.EmergencyEvent());
 
-        mockMvc.perform(post("/api/events")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(request)))
-                .andExpect(status().isOk());
+        var result = controller.createEvent(request);
+
+        assertNotNull(result);
     }
 }

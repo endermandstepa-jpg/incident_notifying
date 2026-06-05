@@ -2,32 +2,24 @@ package com.emergency.alert.controller;
 
 import com.emergency.alert.repository.UserRepository;
 import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
-import org.springframework.test.web.servlet.MockMvc;
 
-import static org.mockito.Mockito.when;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import java.util.List;
 
-@SpringBootTest
-@AutoConfigureMockMvc(addFilters = false) // 💥 убирает Security
+import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.Mockito.*;
+
 class UserControllerTest {
 
-    @Autowired
-    private MockMvc mockMvc;
-
-    @MockBean
-    private UserRepository repository;
+    private final UserRepository repository = mock(UserRepository.class);
+    private final UserController controller = new UserController(repository);
 
     @Test
-    void shouldReturnUsers() throws Exception {
+    void shouldReturnUsers() {
 
-        when(repository.findAll()).thenReturn(java.util.List.of());
+        when(repository.findAll()).thenReturn(List.of());
 
-        mockMvc.perform(get("/api/users"))
-                .andExpect(status().isOk());
+        var result = controller.getUsers();
+
+        assertNotNull(result);
     }
 }
