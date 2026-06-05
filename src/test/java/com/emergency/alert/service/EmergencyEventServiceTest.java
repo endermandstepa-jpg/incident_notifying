@@ -1,3 +1,20 @@
+package com.emergency.alert.service;
+
+import com.emergency.alert.dto.CreateEventRequest;
+import com.emergency.alert.entity.EmergencyEvent;
+import com.emergency.alert.repository.EmergencyEventRepository;
+import com.emergency.alert.repository.GeoZoneRepository;
+import com.emergency.alert.repository.NotificationRepository;
+import com.emergency.alert.repository.UserRepository;
+import com.emergency.alert.telegram.EmergencyTelegramBot;
+import org.junit.jupiter.api.Test;
+import org.mockito.Mockito;
+
+import java.util.Collections;
+
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+
 class EmergencyEventServiceTest {
 
     private final EmergencyEventRepository eventRepo = Mockito.mock(EmergencyEventRepository.class);
@@ -12,13 +29,22 @@ class EmergencyEventServiceTest {
 
     @Test
     void shouldCreateEventObject() {
-
         CreateEventRequest request = new CreateEventRequest();
         request.setTitle("Test");
         request.setMessageText("Message");
+        request.setPriority("HIGH");
+        request.setCity("Berlin");
+        request.setCenterLat(52.52);
+        request.setCenterLng(13.405);
+        request.setRadiusKm(5.0);
 
-        Mockito.when(eventRepo.save(Mockito.any()))
-                .thenAnswer(i -> i.getArgument(0));
+        Mockito.when(eventRepo.save(Mockito.any(EmergencyEvent.class)))
+                .thenAnswer(invocation -> invocation.getArgument(0));
+
+        Mockito.when(geoRepo.save(Mockito.any()))
+                .thenAnswer(invocation -> invocation.getArgument(0));
+
+        Mockito.when(userRepo.findAll()).thenReturn(Collections.emptyList());
 
         EmergencyEvent result = service.create(request);
 
