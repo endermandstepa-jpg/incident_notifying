@@ -8,8 +8,10 @@ import org.springframework.stereotype.Component;
 import org.telegram.telegrambots.bots.TelegramLongPollingBot;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
 import org.telegram.telegrambots.meta.api.objects.Update;
+
 import java.time.LocalDateTime;
-import java.util.Optional;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 @Slf4j
 @Component
@@ -26,11 +28,15 @@ public class EmergencyTelegramBot extends TelegramLongPollingBot {
     @Value("${telegram.bot.username}")
     private String username;
 
+    private final Map<String, Boolean> waitingProfile = new ConcurrentHashMap<>();
+    private final Map<String, Boolean> waitingUpdateProfile = new ConcurrentHashMap<>();
+
     public EmergencyTelegramBot(
             UserRepository userRepository,
             UserResponseRepository responseRepository,
             NotificationRepository notificationRepository,
-            EmergencyEventRepository eventRepository) {
+            EmergencyEventRepository eventRepository
+    ) {
         this.userRepository = userRepository;
         this.responseRepository = responseRepository;
         this.notificationRepository = notificationRepository;
@@ -39,41 +45,79 @@ public class EmergencyTelegramBot extends TelegramLongPollingBot {
 
     @Override
     public void onUpdateReceived(Update update) {
-        if (!update.hasMessage() || !update.getMessage().hasText()) {
-            return;
-        }
+
+        if (!update.hasMessage() || !update.getMessage().hasText()) return;
 
         String text = update.getMessage().getText();
         String chatId = update.getMessage().getChatId().toString();
 
         if ("/start".equals(text)) {
-            send(chatId, "Команды:\n/create_profile\n/delete_profile\n/status");
+            send(chatId, "Команды:\n/create_profile\n/update_profile\n/delete_profile\n/status");
             return;
         }
 
         if ("/create_profile".equals(text)) {
-            Optional<User> existing = userRepository.findByMessengerId(chatId);
-            if (existing.isPresent()) {
-                send(chatId, "Профиль уже существует");
-                return;
-            }
+            waitingProfile.put(chatId, true);
+            send(chatId, "Введите: Имя, широта, долгота");
+            return;
+        }
+
+        if (Boolean.TRUE.equals(waitingProfile.get(chatId))) {
+
+            String[] parts = text.split(",");
 
             User user = User.builder()
                     .messengerId(chatId)
-                    .fullName(update.getMessage().getFrom().getFirstName())
-                    .city("Unknown")
-                    .latitude(0.0)
-                    .longitude(0.0)
+                    .fullName(parts[0].trim())
+                    .latitude(Double.parseDouble(parts[1].trim()))
+                    .longitude(Double.parseDouble(parts[2].trim()))
                     .registeredAt(LocalDateTime.now())
                     .build();
 
             userRepository.save(user);
-            send(chatId, "Профиль создан");
+
+            waitingProfile.remove(chatId);
+
+            send(chatId, "Пользователь успешно создан");
+            return;
+        }
+
+        if ("/update_profile".equals(text)) {
+            waitingUpdateProfile.put(chatId, true);
+            send(chatId, "Введите новые данные: Имя, широта, долгота");
+            return;
+        }
+
+        if (Boolean.TRUE.equals(waitingUpdateProfile.get(chatId))) {
+
+            User user = userRepository.findByMessengerId(chatId)
+                    .orElse(null);
+
+            if (user == null) {
+                send(chatId, "Сначала создайте профиль");
+                waitingUpdateProfile.remove(chatId);
+                return;
+            }
+
+            String[] parts = text.split(",");
+
+            user.setFullName(parts[0].trim());
+            user.setLatitude(Double.parseDouble(parts[1].trim()));
+            user.setLongitude(Double.parseDouble(parts[2].trim()));
+
+            userRepository.save(user);
+
+            waitingUpdateProfile.remove(chatId);
+
+            send(chatId, "Профиль обновлён");
             return;
         }
 
         if ("/delete_profile".equals(text)) {
-            userRepository.findByMessengerId(chatId).ifPresent(userRepository::delete);
+
+            userRepository.findByMessengerId(chatId)
+                    .ifPresent(userRepository::delete);
+
             send(chatId, "Профиль удален");
             return;
         }
@@ -81,56 +125,57 @@ public class EmergencyTelegramBot extends TelegramLongPollingBot {
         if ("/status".equals(text)) {
             eventRepository.findTopByOrderByCreatedAtDesc()
                     .ifPresentOrElse(
-                            event -> send(chatId, event.getTitle() + "\n" + event.getStatus()),
-                            () -> send(chatId, "Нет активных ЧС"));
+                            e -> send(chatId, e.getTitle() + "\n" + e.getStatus()),
+                            () -> send(chatId, "Нет активных ЧС")
+                    );
             return;
         }
 
-        if ("SAFE".equalsIgnoreCase(text)) {
+        if ("Я в безопасности".equalsIgnoreCase(text)) {
             saveResponse(chatId, "SAFE");
+            return;
         }
 
-        if ("HELP".equalsIgnoreCase(text)) {
+        if ("Нужна помощь".equalsIgnoreCase(text)) {
             saveResponse(chatId, "HELP");
+            return;
         }
     }
 
-    private void saveResponse(String chatId, String responseType) {
-        Optional<User> userOpt = userRepository.findByMessengerId(chatId);
-        if (userOpt.isEmpty()) {
-            return;
-        }
+    private void saveResponse(String chatId, String type) {
 
-        User user = userOpt.get();
-        Notification notification = notificationRepository.findTopByUserIdOrderBySentAtDesc(user.getId());
+        User user = userRepository.findByMessengerId(chatId).orElse(null);
+        if (user == null) return;
 
-        if (notification == null) {
-            return;
-        }
+        Notification notification =
+                notificationRepository.findTopByUserIdOrderBySentAtDesc(user.getId());
+
+        if (notification == null) return;
 
         responseRepository.save(UserResponse.builder()
                 .notificationId(notification.getId())
                 .userId(user.getId())
-                .responseType(responseType)
+                .responseType(type)
                 .responseTime(LocalDateTime.now())
                 .build());
 
-        send(chatId, "Ответ сохранен: " + responseType);
+        send(chatId, "Ответ сохранен");
     }
 
     public boolean sendEmergency(String chatId, String title, String text) {
         try {
             SendMessage message = new SendMessage();
             message.setChatId(chatId);
-            message.setText("ЧС\n\n" + title + "\n\n" + text + "\n\nОтветьте SAFE или HELP");
+            message.setText("ЧС\n\n" + title + "\n\n" + text +
+                    "\n\nОтветьте:\nЯ в безопасности\nНужна помощь");
+
             execute(message);
             return true;
         } catch (Exception e) {
-            log.error("Failed to send emergency message: {}", e.getMessage());
+            log.error("Telegram error: {}", e.getMessage());
             return false;
         }
     }
-
     private void send(String chatId, String text) {
         try {
             SendMessage message = new SendMessage();
@@ -138,7 +183,7 @@ public class EmergencyTelegramBot extends TelegramLongPollingBot {
             message.setText(text);
             execute(message);
         } catch (Exception e) {
-            log.error("Failed to send message: {}", e.getMessage());
+            log.error("Telegram error: {}", e.getMessage());
         }
     }
 
