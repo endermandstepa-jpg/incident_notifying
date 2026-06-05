@@ -1,33 +1,36 @@
-@WebMvcTest(EmergencyEventController.class)
-@AutoConfigureMockMvc(addFilters = false)
+package com.emergency.alert.controller;
+
+import com.emergency.alert.dto.CreateEventRequest;
+import com.emergency.alert.entity.EmergencyEvent;
+import com.emergency.alert.service.EmergencyEventService;
+import org.junit.jupiter.api.Test;
+
+import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.Mockito.*;
+
 class EmergencyEventControllerTest {
 
-    @Autowired
-    private MockMvc mockMvc;
-
-    @MockBean
-    private EmergencyEventService service;
-
-    @MockBean
-    private EmergencyEventRepository repository; // 🔥 ВОТ ЭТО ИСПРАВЛЕНИЕ
-
-    @Autowired
-    private ObjectMapper objectMapper;
+    private final EmergencyEventService service = mock(EmergencyEventService.class);
+    private final EmergencyEventController controller = new EmergencyEventController(service);
 
     @Test
-    void shouldCreateEvent() throws Exception {
+    void shouldCreateEvent() {
 
         CreateEventRequest request = new CreateEventRequest();
         request.setTitle("Fire");
         request.setMessageText("Evacuate");
         request.setCity("Berlin");
 
-        when(service.create(any()))
-                .thenReturn(new EmergencyEvent());
+        EmergencyEvent event = new EmergencyEvent();
+        event.setTitle("Fire");
 
-        mockMvc.perform(post("/api/events")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(request)))
-                .andExpect(status().isOk());
+        when(service.create(any(CreateEventRequest.class)))
+                .thenReturn(event);
+
+        EmergencyEvent result = controller.createEvent(request);
+
+        assertNotNull(result);
+        assertEquals("Fire", result.getTitle());
+        verify(service, times(1)).create(request);
     }
 }
