@@ -1,6 +1,5 @@
 package com.emergency.alert.controller;
 
-import com.emergency.alert.config.ApiKeyFilter;
 import com.emergency.alert.config.SecurityConfig;
 import com.emergency.alert.entity.User;
 import com.emergency.alert.repository.UserRepository;
@@ -17,7 +16,7 @@ import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-@WebMvcTest(UserController.class)
+@WebMvcTest(controllers = UserController.class)
 @Import(SecurityConfig.class)
 class UserControllerTest {
 
@@ -27,11 +26,13 @@ class UserControllerTest {
     @MockBean
     private UserRepository repository;
 
+    // важно: контроллер не зависит от filter напрямую, но Spring Security требует bean graph
     @MockBean
-    private ApiKeyFilter apiKeyFilter;
+    private com.emergency.alert.config.ApiKeyFilter apiKeyFilter;
 
     @Test
     void shouldReturnUsers() throws Exception {
+
         when(repository.findAll()).thenReturn(List.of(new User()));
 
         mockMvc.perform(get("/api/users")
