@@ -12,7 +12,6 @@ public class GeoService {
             double lon2,
             double radiusKm
     ) {
-
         double earthRadius = 6371.0;
 
         double dLat = Math.toRadians(lat2 - lat1);
@@ -25,9 +24,7 @@ public class GeoService {
                         * Math.sin(dLon / 2)
                         * Math.sin(dLon / 2);
 
-        double c = 2 * Math.atan2(
-                Math.sqrt(a),
-                Math.sqrt(1 - a));
+        double c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 
         double distance = earthRadius * c;
 

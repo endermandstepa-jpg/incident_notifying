@@ -8,9 +8,9 @@ import java.time.LocalDateTime;
 @Entity
 @Getter
 @Setter
+@Builder
 @NoArgsConstructor
 @AllArgsConstructor
-@Builder
 public class EmergencyEvent {
 
     @Id
@@ -19,6 +19,7 @@ public class EmergencyEvent {
 
     private String title;
     private String messageText;
+    private String priority;
     private String status;
     private LocalDateTime createdAt;
 }

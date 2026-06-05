@@ -1,14 +1,3 @@
-package com.emergency.alert.service;
-
-import com.emergency.alert.dto.CreateEventRequest;
-import com.emergency.alert.entity.EmergencyEvent;
-import com.emergency.alert.repository.*;
-import com.emergency.alert.telegram.EmergencyTelegramBot;
-import org.junit.jupiter.api.Test;
-import org.mockito.Mockito;
-
-import static org.junit.jupiter.api.Assertions.*;
-
 class EmergencyEventServiceTest {
 
     private final EmergencyEventRepository eventRepo = Mockito.mock(EmergencyEventRepository.class);
@@ -27,7 +16,9 @@ class EmergencyEventServiceTest {
         CreateEventRequest request = new CreateEventRequest();
         request.setTitle("Test");
         request.setMessageText("Message");
-        request.setCity("Berlin");
+
+        Mockito.when(eventRepo.save(Mockito.any()))
+                .thenAnswer(i -> i.getArgument(0));
 
         EmergencyEvent result = service.create(request);
 

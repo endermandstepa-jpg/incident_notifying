@@ -20,7 +20,6 @@ public class ApiKeyFilter extends OncePerRequestFilter {
     @Override
     protected boolean shouldNotFilter(HttpServletRequest request) {
         String path = request.getRequestURI();
-        // Пропускаем все пути, кроме /api/**
         return !path.startsWith("/api/");
     }
 
@@ -31,8 +30,8 @@ public class ApiKeyFilter extends OncePerRequestFilter {
             FilterChain filterChain
     ) throws ServletException, IOException {
 
-        // Проверяем API key в заголовке или параметре
         String key = request.getHeader("X-API-Key");
+
         if (key == null) {
             key = request.getParameter("apiKey");
         }

@@ -3,12 +3,14 @@ package com.emergency.alert.entity;
 import jakarta.persistence.*;
 import lombok.*;
 
+import java.time.LocalDateTime;
+
 @Entity
 @Getter
 @Setter
+@Builder
 @NoArgsConstructor
 @AllArgsConstructor
-@Builder
 public class Notification {
 
     @Id
@@ -17,4 +19,6 @@ public class Notification {
 
     private Long eventId;
     private Long userId;
+    private String deliveryStatus;
+    private LocalDateTime sentAt;
 }

@@ -27,10 +27,6 @@ public class EmergencyEventService {
     @Transactional
     public EmergencyEvent create(CreateEventRequest request) {
 
-        if (request == null) {
-            throw new IllegalArgumentException("request is null");
-        }
-
         EmergencyEvent event = EmergencyEvent.builder()
                 .title(request.getTitle())
                 .messageText(request.getMessageText())
@@ -52,13 +48,11 @@ public class EmergencyEventService {
         geoZoneRepository.save(zone);
 
         List<User> users = userRepository.findAll();
-        int notifiedCount = 0;
+        int notified = 0;
 
         for (User user : users) {
 
-            if (user.getLatitude() == null || user.getLongitude() == null) {
-                continue;
-            }
+            if (user.getLatitude() == null || user.getLongitude() == null) continue;
 
             boolean inside = geoService.insideRadius(
                     user.getLatitude(),
@@ -76,18 +70,18 @@ public class EmergencyEventService {
                     event.getMessageText()
             );
 
-            Notification notification = Notification.builder()
+            Notification n = Notification.builder()
                     .eventId(event.getId())
                     .userId(user.getId())
                     .deliveryStatus(sent ? "SENT" : "FAILED")
                     .sentAt(LocalDateTime.now())
                     .build();
 
-            notificationRepository.save(notification);
-            notifiedCount++;
+            notificationRepository.save(n);
+            notified++;
         }
 
-        log.info("Event {} created. Notified {} users", event.getId(), notifiedCount);
+        log.info("Event {} created. Notified {}", event.getId(), notified);
 
         return event;
     }
