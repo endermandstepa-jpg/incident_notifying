@@ -1,7 +1,7 @@
 package com.emergency.alert.repository;
 
-import com.emergency.alert.entity.UserResponse;
+import com.emergency.alert.entity.User;
 import org.springframework.data.jpa.repository.JpaRepository;
 
-public interface UserResponseRepository extends JpaRepository<UserResponse, Long> {
+public interface UserRepository extends JpaRepository<User, Long> {
 }

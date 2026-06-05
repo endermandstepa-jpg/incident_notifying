@@ -1,6 +1,8 @@
 package com.emergency.alert.controller;
 
 import com.emergency.alert.dto.CreateEventRequest;
+import com.emergency.alert.dto.EventInfoResponse;
+import com.emergency.alert.dto.EventResponseStatusDto;
 import com.emergency.alert.entity.*;
 import com.emergency.alert.repository.*;
 import com.emergency.alert.service.EmergencyEventService;
@@ -28,7 +30,6 @@ public class EmergencyEventController {
 
     @GetMapping
     public List<EventInfoResponse> getAllEvents() {
-
         return eventRepository.findAll().stream().map(event -> {
 
             GeoZone zone = geoZoneRepository.findByEventId(event.getId()).orElse(null);
