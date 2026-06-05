@@ -1,9 +1,7 @@
 package com.emergency.alert.repository;
 
-import com.emergency.alert.entity.User;
+import com.emergency.alert.entity.UserResponse;
 import org.springframework.data.jpa.repository.JpaRepository;
-import java.util.Optional;
 
-public interface UserRepository extends JpaRepository<User, Long> {
-    Optional<User> findByMessengerId(String messengerId);
+public interface UserResponseRepository extends JpaRepository<UserResponse, Long> {
 }
