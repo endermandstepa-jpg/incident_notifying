@@ -1,7 +1,13 @@
 package com.emergency.alert.telegram;
 
-import com.emergency.alert.entity.*;
-import com.emergency.alert.repository.*;
+import com.emergency.alert.entity.EmergencyEvent;
+import com.emergency.alert.entity.Notification;
+import com.emergency.alert.entity.User;
+import com.emergency.alert.entity.UserResponse;
+import com.emergency.alert.repository.EmergencyEventRepository;
+import com.emergency.alert.repository.NotificationRepository;
+import com.emergency.alert.repository.UserRepository;
+import com.emergency.alert.repository.UserResponseRepository;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
@@ -46,7 +52,9 @@ public class EmergencyTelegramBot extends TelegramLongPollingBot {
     @Override
     public void onUpdateReceived(Update update) {
 
-        if (!update.hasMessage() || !update.getMessage().hasText()) return;
+        if (!update.hasMessage() || !update.getMessage().hasText()) {
+            return;
+        }
 
         String text = update.getMessage().getText();
         String chatId = update.getMessage().getChatId().toString();
@@ -63,8 +71,12 @@ public class EmergencyTelegramBot extends TelegramLongPollingBot {
         }
 
         if (Boolean.TRUE.equals(waitingProfile.get(chatId))) {
-
             String[] parts = text.split(",");
+
+            if (parts.length < 3) {
+                send(chatId, "Неверный формат. Нужно: Имя, широта, долгота");
+                return;
+            }
 
             User user = User.builder()
                     .messengerId(chatId)
@@ -75,9 +87,7 @@ public class EmergencyTelegramBot extends TelegramLongPollingBot {
                     .build();
 
             userRepository.save(user);
-
             waitingProfile.remove(chatId);
-
             send(chatId, "Пользователь успешно создан");
             return;
         }
@@ -89,9 +99,7 @@ public class EmergencyTelegramBot extends TelegramLongPollingBot {
         }
 
         if (Boolean.TRUE.equals(waitingUpdateProfile.get(chatId))) {
-
-            User user = userRepository.findByMessengerId(chatId)
-                    .orElse(null);
+            User user = userRepository.findByMessengerId(chatId).orElse(null);
 
             if (user == null) {
                 send(chatId, "Сначала создайте профиль");
@@ -101,23 +109,23 @@ public class EmergencyTelegramBot extends TelegramLongPollingBot {
 
             String[] parts = text.split(",");
 
+            if (parts.length < 3) {
+                send(chatId, "Неверный формат. Нужно: Имя, широта, долгота");
+                return;
+            }
+
             user.setFullName(parts[0].trim());
             user.setLatitude(Double.parseDouble(parts[1].trim()));
             user.setLongitude(Double.parseDouble(parts[2].trim()));
 
             userRepository.save(user);
-
             waitingUpdateProfile.remove(chatId);
-
             send(chatId, "Профиль обновлён");
             return;
         }
 
         if ("/delete_profile".equals(text)) {
-
-            userRepository.findByMessengerId(chatId)
-                    .ifPresent(userRepository::delete);
-
+            userRepository.findByMessengerId(chatId).ifPresent(userRepository::delete);
             send(chatId, "Профиль удален");
             return;
         }
@@ -138,12 +146,10 @@ public class EmergencyTelegramBot extends TelegramLongPollingBot {
 
         if ("Нужна помощь".equalsIgnoreCase(text)) {
             saveResponse(chatId, "HELP");
-            return;
         }
     }
 
     private void saveResponse(String chatId, String type) {
-
         User user = userRepository.findByMessengerId(chatId).orElse(null);
         if (user == null) return;
 
@@ -168,7 +174,6 @@ public class EmergencyTelegramBot extends TelegramLongPollingBot {
             message.setChatId(chatId);
             message.setText("ЧС\n\n" + title + "\n\n" + text +
                     "\n\nОтветьте:\nЯ в безопасности\nНужна помощь");
-
             execute(message);
             return true;
         } catch (Exception e) {
@@ -176,6 +181,7 @@ public class EmergencyTelegramBot extends TelegramLongPollingBot {
             return false;
         }
     }
+
     private void send(String chatId, String text) {
         try {
             SendMessage message = new SendMessage();
