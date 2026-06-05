@@ -26,17 +26,12 @@ class UserControllerTest {
     @MockBean
     private UserRepository repository;
 
-    // важно: контроллер не зависит от filter напрямую, но Spring Security требует bean graph
-    @MockBean
-    private com.emergency.alert.config.ApiKeyFilter apiKeyFilter;
-
     @Test
     void shouldReturnUsers() throws Exception {
 
         when(repository.findAll()).thenReturn(List.of(new User()));
 
-        mockMvc.perform(get("/api/users")
-                        .header("X-API-Key", "default-key-for-development"))
+        mockMvc.perform(get("/api/users"))
                 .andExpect(status().isOk());
     }
 }
