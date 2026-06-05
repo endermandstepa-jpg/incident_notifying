@@ -11,16 +11,17 @@ import static org.junit.jupiter.api.Assertions.*;
 
 class UserControllerTest {
 
-    private final UserRepository repo = Mockito.mock(UserRepository.class);
+    private final UserRepository repository = Mockito.mock(UserRepository.class);
 
-    private final UserController controller = new UserController(repo);
+    private final UserController controller = new UserController(repository);
 
     @Test
-    void shouldReturnUsers() {
+    void shouldReturnAllUsers() {
 
-        Mockito.when(repo.findAll()).thenReturn(List.of(new User()));
+        Mockito.when(repository.findAll())
+                .thenReturn(List.of(new User()));
 
-        var result = controller.getUsers();
+        List<User> result = controller.all();
 
         assertNotNull(result);
         assertEquals(1, result.size());
