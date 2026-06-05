@@ -8,6 +8,8 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 @NoArgsConstructor
 public class EventResponseStatusDto {
+
     private Long userId;
+    private String userName;
     private String responseType;
 }

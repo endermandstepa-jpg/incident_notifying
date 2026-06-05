@@ -1,18 +1,8 @@
 package com.emergency.alert.controller;
 
-import com.emergency.alert.dto.CreateEventRequest;
-import com.emergency.alert.dto.EventInfoResponse;
-import com.emergency.alert.dto.EventResponseStatusDto;
-import com.emergency.alert.entity.EmergencyEvent;
-import com.emergency.alert.entity.GeoZone;
-import com.emergency.alert.entity.Notification;
-import com.emergency.alert.entity.User;
-import com.emergency.alert.entity.UserResponse;
-import com.emergency.alert.repository.EmergencyEventRepository;
-import com.emergency.alert.repository.GeoZoneRepository;
-import com.emergency.alert.repository.NotificationRepository;
-import com.emergency.alert.repository.UserResponseRepository;
-import com.emergency.alert.repository.UserRepository;
+import com.emergency.alert.dto.*;
+import com.emergency.alert.entity.*;
+import com.emergency.alert.repository.*;
 import com.emergency.alert.service.EmergencyEventService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
@@ -38,11 +28,16 @@ public class EmergencyEventController {
 
     @GetMapping
     public List<EventInfoResponse> getAllEvents() {
+
         return eventRepository.findAll().stream().map(event -> {
+
             GeoZone zone = geoZoneRepository.findByEventId(event.getId()).orElse(null);
 
             EventInfoResponse dto = new EventInfoResponse();
+
             dto.setEventId(event.getId());
+            dto.setTitle(event.getTitle());
+            dto.setMessageText(event.getMessageText());
             dto.setCreatedAt(event.getCreatedAt());
 
             if (zone != null) {
@@ -56,28 +51,29 @@ public class EmergencyEventController {
     }
 
     @GetMapping("/{eventId}/responses")
-    public List<EventResponseStatusDto> getResponses(@PathVariable Long eventId) {
-        List<Notification> notifications = notificationRepository.findAll().stream()
-                .filter(n -> eventId.equals(n.getEventId()))
-                .toList();
+public List<EventResponseStatusDto> getResponses(@PathVariable Long eventId) {
 
-        List<Long> notificationIds = notifications.stream()
-                .map(Notification::getId)
-                .toList();
+    List<Long> notificationIds = notificationRepository
+            .findByEventId(eventId)
+            .stream()
+            .map(Notification::getId)
+            .toList();
 
-        List<UserResponse> responses = userResponseRepository.findAll().stream()
-                .filter(r -> notificationIds.contains(r.getNotificationId()))
-                .toList();
+    return userResponseRepository
+            .findByNotificationIdIn(notificationIds)
+            .stream()
+            .map(r -> {
 
-        return responses.stream().map(r -> {
-            User user = userRepository.findById(r.getUserId()).orElseThrow();
+                User user = userRepository.findById(r.getUserId())
+                        .orElseThrow();
 
-            EventResponseStatusDto dto = new EventResponseStatusDto();
-            dto.setUserId(user.getId());
-            dto.setUserName(user.getFullName());
-            dto.setResponseType(r.getResponseType());
+                EventResponseStatusDto dto = new EventResponseStatusDto();
+                dto.setUserId(user.getId());
+                dto.setUserName(user.getFullName());
+                dto.setResponseType(r.getResponseType());
 
-            return dto;
-        }).toList();
-    }
+                return dto;
+            })
+            .toList();
+}
 }
