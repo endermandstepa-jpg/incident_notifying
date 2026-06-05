@@ -1,6 +1,6 @@
 package com.emergency.alert.controller;
 
-import com.emergency.alert.dto.CreateEventRequest;
+import com.emergency.alert.dto.*;
 import com.emergency.alert.entity.*;
 import com.emergency.alert.repository.*;
 import com.emergency.alert.service.EmergencyEventService;
@@ -34,7 +34,10 @@ public class EmergencyEventController {
             GeoZone zone = geoZoneRepository.findByEventId(event.getId()).orElse(null);
 
             EventInfoResponse dto = new EventInfoResponse();
+
             dto.setEventId(event.getId());
+            dto.setTitle(event.getTitle());
+            dto.setMessageText(event.getMessageText());
             dto.setCreatedAt(event.getCreatedAt());
 
             if (zone != null) {
@@ -48,32 +51,29 @@ public class EmergencyEventController {
     }
 
     @GetMapping("/{eventId}/responses")
-    public List<EventResponseStatusDto> getResponses(@PathVariable Long eventId) {
+public List<EventResponseStatusDto> getResponses(@PathVariable Long eventId) {
 
-        List<Notification> notifications =
-                notificationRepository.findAll().stream()
-                        .filter(n -> n.getEventId().equals(eventId))
-                        .toList();
+    List<Long> notificationIds = notificationRepository
+            .findByEventId(eventId)
+            .stream()
+            .map(Notification::getId)
+            .toList();
 
-        List<Long> ids = notifications.stream()
-                .map(Notification::getId)
-                .toList();
+    return userResponseRepository
+            .findByNotificationIdIn(notificationIds)
+            .stream()
+            .map(r -> {
 
-        List<UserResponse> responses =
-                userResponseRepository.findAll().stream()
-                        .filter(r -> ids.contains(r.getNotificationId()))
-                        .toList();
+                User user = userRepository.findById(r.getUserId())
+                        .orElseThrow();
 
-        return responses.stream().map(r -> {
+                EventResponseStatusDto dto = new EventResponseStatusDto();
+                dto.setUserId(user.getId());
+                dto.setUserName(user.getFullName());
+                dto.setResponseType(r.getResponseType());
 
-            User user = userRepository.findById(r.getUserId()).orElseThrow();
-
-            EventResponseStatusDto dto = new EventResponseStatusDto();
-            dto.setUserId(user.getId());
-            dto.setUserName(user.getFullName());
-            dto.setResponseType(r.getResponseType());
-
-            return dto;
-        }).toList();
-    }
+                return dto;
+            })
+            .toList();
+}
 }

@@ -1,7 +1,13 @@
 package com.emergency.alert.repository;
 
-import com.emergency.alert.entity.UserResponse;
+import com.emergency.alert.entity.User;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.stereotype.Repository;
 
-public interface UserResponseRepository extends JpaRepository<UserResponse, Long> {
+import java.util.Optional;
+
+@Repository
+public interface UserRepository extends JpaRepository<User, Long> {
+
+    Optional<User> findByMessengerId(String messengerId);
 }

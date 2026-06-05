@@ -1,23 +1,22 @@
 package com.emergency.alert.entity;
 
-import lombok.Data;
-import lombok.NoArgsConstructor;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
 import javax.persistence.*;
+import lombok.*;
+
 import java.time.LocalDateTime;
 
-@Data
+@Entity
+@Getter
+@Setter
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-@Entity
-@Table(name = "emergency_events")
 public class EmergencyEvent {
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
-    
+
     private String title;
     private String messageText;
     private String priority;

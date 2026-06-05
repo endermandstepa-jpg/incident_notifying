@@ -7,6 +7,8 @@ import com.emergency.alert.telegram.EmergencyTelegramBot;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 
+import java.util.Collections;
+
 import static org.junit.jupiter.api.Assertions.*;
 
 class EmergencyEventServiceTest {
@@ -22,11 +24,17 @@ class EmergencyEventServiceTest {
             new EmergencyEventService(eventRepo, geoRepo, userRepo, notificationRepo, bot, geoService);
 
     @Test
-    void shouldCreateEventObject() {
+    void shouldCreateEvent() {
+
         CreateEventRequest request = new CreateEventRequest();
         request.setTitle("Test");
         request.setMessageText("Message");
         request.setCity("Berlin");
+
+        Mockito.when(eventRepo.save(Mockito.any()))
+                .thenAnswer(i -> i.getArgument(0));
+
+        Mockito.when(userRepo.findAll()).thenReturn(Collections.emptyList());
 
         EmergencyEvent result = service.create(request);
 

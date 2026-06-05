@@ -1,10 +1,11 @@
 package com.emergency.alert.controller;
 
+import com.emergency.alert.dto.UpdateUserRequest;
 import com.emergency.alert.entity.User;
 import com.emergency.alert.repository.UserRepository;
-import com.emergency.alert.dto.UpdateUserRequest;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
+
 import java.util.List;
 
 @RestController
@@ -26,15 +27,12 @@ public class UserController {
 
     @PutMapping("/{id}")
     public User update(@PathVariable Long id, @RequestBody UpdateUserRequest request) {
-
-    User user = repository.findById(id).orElseThrow();
-
-    user.setFullName(request.getFullName());
-    user.setLatitude(request.getLatitude());
-    user.setLongitude(request.getLongitude());
-
-    return repository.save(user);
-}
+        User user = repository.findById(id).orElseThrow();
+        user.setFullName(request.getFullName());
+        user.setLatitude(request.getLatitude());
+        user.setLongitude(request.getLongitude());
+        return repository.save(user);
+    }
 
     @DeleteMapping("/{id}")
     public void delete(@PathVariable Long id) {
