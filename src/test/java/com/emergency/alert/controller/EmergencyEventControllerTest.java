@@ -3,14 +3,14 @@ package com.emergency.alert.controller;
 import com.emergency.alert.config.SecurityConfig;
 import com.emergency.alert.dto.CreateEventRequest;
 import com.emergency.alert.entity.EmergencyEvent;
+import com.emergency.alert.repository.EmergencyEventRepository;
 import com.emergency.alert.service.EmergencyEventService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
-import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
+import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
-import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 
@@ -19,9 +19,8 @@ import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-@WebMvcTest(EmergencyEventController.class)
-@AutoConfigureMockMvc(addFilters = false) // 🔥 КЛЮЧЕВОЙ FIX
-@Import(SecurityConfig.class)
+@SpringBootTest
+@AutoConfigureMockMvc(addFilters = false) // выключаем security
 class EmergencyEventControllerTest {
 
     @Autowired
@@ -29,6 +28,9 @@ class EmergencyEventControllerTest {
 
     @MockBean
     private EmergencyEventService service;
+
+    @MockBean // 🔥 ВАЖНО — теперь Spring не падает
+    private EmergencyEventRepository repository;
 
     @Autowired
     private ObjectMapper objectMapper;
