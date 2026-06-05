@@ -1,5 +1,6 @@
 package com.emergency.alert.controller;
 
+import com.emergency.alert.config.SecurityConfig;
 import com.emergency.alert.dto.CreateEventRequest;
 import com.emergency.alert.entity.EmergencyEvent;
 import com.emergency.alert.service.EmergencyEventService;
@@ -9,6 +10,7 @@ import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 
@@ -16,6 +18,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @WebMvcTest(EmergencyEventController.class)
+@Import(SecurityConfig.class)
 class EmergencyEventControllerTest {
 
     @Autowired
@@ -29,6 +32,7 @@ class EmergencyEventControllerTest {
 
     @Test
     void shouldCreateEvent() throws Exception {
+
         CreateEventRequest request = new CreateEventRequest();
         request.setTitle("Fire");
         request.setMessageText("Evacuate");
@@ -38,8 +42,8 @@ class EmergencyEventControllerTest {
                 .thenReturn(new EmergencyEvent());
 
         mockMvc.perform(post("/api/events")
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(request)))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isOk());
     }
 }

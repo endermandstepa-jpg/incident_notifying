@@ -1,23 +1,20 @@
 package com.emergency.alert.entity;
 
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
-import lombok.NoArgsConstructor;
-import javax.persistence.*;
+import jakarta.persistence.*;
+import lombok.*;
 
-@Data
-@Builder
+@Entity
+@Getter
+@Setter
 @NoArgsConstructor
 @AllArgsConstructor
-@Entity
-@Table(name = "geo_zones")
+@Builder
 public class GeoZone {
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
-    
-    private Long eventId;
+
     private String city;
     private Double centerLat;
     private Double centerLng;

@@ -1,14 +1,8 @@
 package com.emergency.alert.service;
 
 import com.emergency.alert.dto.CreateEventRequest;
-import com.emergency.alert.entity.EmergencyEvent;
-import com.emergency.alert.entity.GeoZone;
-import com.emergency.alert.entity.Notification;
-import com.emergency.alert.entity.User;
-import com.emergency.alert.repository.EmergencyEventRepository;
-import com.emergency.alert.repository.GeoZoneRepository;
-import com.emergency.alert.repository.NotificationRepository;
-import com.emergency.alert.repository.UserRepository;
+import com.emergency.alert.entity.*;
+import com.emergency.alert.repository.*;
 import com.emergency.alert.telegram.EmergencyTelegramBot;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -32,6 +26,11 @@ public class EmergencyEventService {
 
     @Transactional
     public EmergencyEvent create(CreateEventRequest request) {
+
+        if (request == null) {
+            throw new IllegalArgumentException("request is null");
+        }
+
         EmergencyEvent event = EmergencyEvent.builder()
                 .title(request.getTitle())
                 .messageText(request.getMessageText())
@@ -56,6 +55,7 @@ public class EmergencyEventService {
         int notifiedCount = 0;
 
         for (User user : users) {
+
             if (user.getLatitude() == null || user.getLongitude() == null) {
                 continue;
             }
@@ -68,9 +68,7 @@ public class EmergencyEventService {
                     zone.getRadiusKm()
             );
 
-            if (!inside) {
-                continue;
-            }
+            if (!inside) continue;
 
             boolean sent = bot.sendEmergency(
                     user.getMessengerId(),
@@ -90,6 +88,7 @@ public class EmergencyEventService {
         }
 
         log.info("Event {} created. Notified {} users", event.getId(), notifiedCount);
+
         return event;
     }
 }

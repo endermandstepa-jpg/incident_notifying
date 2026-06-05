@@ -23,6 +23,7 @@ class EmergencyEventServiceTest {
 
     @Test
     void shouldCreateEventObject() {
+
         CreateEventRequest request = new CreateEventRequest();
         request.setTitle("Test");
         request.setMessageText("Message");
