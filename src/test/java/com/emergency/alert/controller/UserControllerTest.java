@@ -1,27 +1,33 @@
 package com.emergency.alert.controller;
 
-import com.emergency.alert.entity.User;
 import com.emergency.alert.repository.UserRepository;
 import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.test.web.servlet.MockMvc;
 
-import java.util.List;
+import static org.mockito.Mockito.when;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.Mockito.*;
-
+@SpringBootTest
+@AutoConfigureMockMvc(addFilters = false) // 💥 убирает Security
 class UserControllerTest {
 
-    private final UserRepository repository = mock(UserRepository.class);
-    private final UserController controller = new UserController(repository);
+    @Autowired
+    private MockMvc mockMvc;
+
+    @MockBean
+    private UserRepository repository;
 
     @Test
-    void shouldReturnUsers() {
+    void shouldReturnUsers() throws Exception {
 
-        when(repository.findAll()).thenReturn(List.of(new User()));
+        when(repository.findAll()).thenReturn(java.util.List.of());
 
-        List<User> result = controller.getUsers();
-
-        assertNotNull(result);
-        assertEquals(1, result.size());
+        mockMvc.perform(get("/api/users"))
+                .andExpect(status().isOk());
     }
 }

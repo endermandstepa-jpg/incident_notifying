@@ -43,6 +43,6 @@ public class ApiKeyFilter extends OncePerRequestFilter {
             return;
         }
 
-        filterChain.doFilter(request, response);
+        filter.doFilterInternal(request, response, (req, res) -> {});
     }
 }
