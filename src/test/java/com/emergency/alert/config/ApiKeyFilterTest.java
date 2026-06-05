@@ -13,11 +13,11 @@ class ApiKeyFilterTest {
     void shouldRejectRequestWithoutApiKey() throws Exception {
 
         MockHttpServletRequest request = new MockHttpServletRequest();
-        request.setRequestURI("/api/events");
+        request.setRequestURI("/api/test");
 
         MockHttpServletResponse response = new MockHttpServletResponse();
 
-        filter.doFilterInternal(request, response, (req, res) -> {});
+        filter.doFilter(request, response, new MockFilterChain());
 
         assertEquals(401, response.getStatus());
     }

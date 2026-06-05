@@ -10,23 +10,15 @@ class GeoServiceTest {
 
     @Test
     void shouldReturnTrueWhenInsideRadius() {
-        boolean result = geoService.insideRadius(
-                55.75, 37.61,
-                55.76, 37.62,
-                5
+        assertTrue(
+                geoService.insideRadius(55.75, 37.61, 55.76, 37.62, 5)
         );
-
-        assertTrue(result);
     }
 
     @Test
     void shouldReturnFalseWhenOutsideRadius() {
-        boolean result = geoService.insideRadius(
-                55.75, 37.61,
-                60.00, 30.00,
-                5
+        assertFalse(
+                geoService.insideRadius(55.75, 37.61, 60.0, 30.0, 5)
         );
-
-        assertFalse(result);
     }
 }

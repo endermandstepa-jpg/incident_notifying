@@ -1,5 +1,6 @@
 package com.emergency.alert.service;
 
+import com.emergency.alert.dto.CreateEventRequest;
 import com.emergency.alert.entity.EmergencyEvent;
 import com.emergency.alert.repository.*;
 import com.emergency.alert.telegram.EmergencyTelegramBot;
@@ -17,7 +18,7 @@ class EmergencyEventServiceTest {
     private final UserRepository userRepo = Mockito.mock(UserRepository.class);
     private final NotificationRepository notificationRepo = Mockito.mock(NotificationRepository.class);
     private final EmergencyTelegramBot bot = Mockito.mock(EmergencyTelegramBot.class);
-    private final GeoService geoService = Mockito.mock(GeoService.class);
+    private final GeoService geoService = new GeoService();
 
     private final EmergencyEventService service =
             new EmergencyEventService(eventRepo, geoRepo, userRepo, notificationRepo, bot, geoService);
@@ -25,13 +26,15 @@ class EmergencyEventServiceTest {
     @Test
     void shouldCreateEvent() {
 
-        var request = new com.emergency.alert.dto.CreateEventRequest();
+        CreateEventRequest request = new CreateEventRequest();
         request.setTitle("Test");
+        request.setMessageText("Message");
         request.setCity("Berlin");
 
-        Mockito.when(userRepo.findAll()).thenReturn(Collections.emptyList());
         Mockito.when(eventRepo.save(Mockito.any()))
                 .thenAnswer(i -> i.getArgument(0));
+
+        Mockito.when(userRepo.findAll()).thenReturn(Collections.emptyList());
 
         EmergencyEvent result = service.create(request);
 
