@@ -1,7 +1,13 @@
 package com.emergency.alert.telegram;
 
-import com.emergency.alert.entity.*;
-import com.emergency.alert.repository.*;
+import com.emergency.alert.entity.EmergencyEvent;
+import com.emergency.alert.entity.Notification;
+import com.emergency.alert.entity.User;
+import com.emergency.alert.entity.UserResponse;
+import com.emergency.alert.repository.EmergencyEventRepository;
+import com.emergency.alert.repository.NotificationRepository;
+import com.emergency.alert.repository.UserRepository;
+import com.emergency.alert.repository.UserResponseRepository;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
@@ -9,6 +15,7 @@ import org.telegram.telegrambots.bots.TelegramLongPollingBot;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
 import org.telegram.telegrambots.meta.api.objects.Update;
 
+import java.time.LocalDateTime;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -44,8 +51,9 @@ public class EmergencyTelegramBot extends TelegramLongPollingBot {
 
     @Override
     public void onUpdateReceived(Update update) {
-
-        if (!update.hasMessage() || !update.getMessage().hasText()) return;
+        if (!update.hasMessage() || !update.getMessage().hasText()) {
+            return;
+        }
 
         String text = update.getMessage().getText();
         String chatId = update.getMessage().getChatId().toString();
@@ -65,7 +73,7 @@ public class EmergencyTelegramBot extends TelegramLongPollingBot {
             String[] parts = text.split(",");
 
             if (parts.length < 3) {
-                send(chatId, "Неверный формат");
+                send(chatId, "Неверный формат. Нужно: Имя, широта, долгота");
                 return;
             }
 
@@ -78,19 +86,19 @@ public class EmergencyTelegramBot extends TelegramLongPollingBot {
 
             userRepository.save(user);
             waitingProfile.remove(chatId);
-            send(chatId, "Профиль создан");
+            send(chatId, "Пользователь успешно создан");
             return;
         }
 
         if ("/update_profile".equals(text)) {
             waitingUpdateProfile.put(chatId, true);
-            send(chatId, "Введите: Имя, широта, долгота");
+            send(chatId, "Введите новые данные: Имя, широта, долгота");
             return;
         }
 
         if (Boolean.TRUE.equals(waitingUpdateProfile.get(chatId))) {
-
             User user = userRepository.findByMessengerId(chatId).orElse(null);
+
             if (user == null) {
                 send(chatId, "Сначала создайте профиль");
                 waitingUpdateProfile.remove(chatId);
@@ -98,6 +106,11 @@ public class EmergencyTelegramBot extends TelegramLongPollingBot {
             }
 
             String[] parts = text.split(",");
+
+            if (parts.length < 3) {
+                send(chatId, "Неверный формат. Нужно: Имя, широта, долгота");
+                return;
+            }
 
             user.setFullName(parts[0].trim());
             user.setLatitude(Double.parseDouble(parts[1].trim()));
@@ -111,7 +124,7 @@ public class EmergencyTelegramBot extends TelegramLongPollingBot {
 
         if ("/delete_profile".equals(text)) {
             userRepository.findByMessengerId(chatId).ifPresent(userRepository::delete);
-            send(chatId, "Профиль удалён");
+            send(chatId, "Профиль удален");
             return;
         }
 
@@ -124,19 +137,29 @@ public class EmergencyTelegramBot extends TelegramLongPollingBot {
             return;
         }
 
-        if ("Я в безопасности".equalsIgnoreCase(text)) saveResponse(chatId, "SAFE");
-        if ("Нужна помощь".equalsIgnoreCase(text)) saveResponse(chatId, "HELP");
+        if ("Я в безопасности".equalsIgnoreCase(text)) {
+            saveResponse(chatId, "SAFE");
+            return;
+        }
+
+        if ("Нужна помощь".equalsIgnoreCase(text)) {
+            saveResponse(chatId, "HELP");
+        }
     }
 
     private void saveResponse(String chatId, String type) {
-
         User user = userRepository.findByMessengerId(chatId).orElse(null);
-        if (user == null) return;
+        if (user == null) {
+            return;
+        }
 
-        Notification notification =
-                notificationRepository.findTopByUserIdOrderBySentAtDesc(user.getId());
+        Notification notification = notificationRepository
+                .findTopByUserIdOrderBySentAtDesc(user.getId())
+                .orElse(null);
 
-        if (notification == null) return;
+        if (notification == null) {
+            return;
+        }
 
         responseRepository.save(UserResponse.builder()
                 .notificationId(notification.getId())
@@ -144,15 +167,16 @@ public class EmergencyTelegramBot extends TelegramLongPollingBot {
                 .responseType(type)
                 .build());
 
-        send(chatId, "Ответ сохранён");
+        send(chatId, "Ответ сохранен");
     }
 
     public boolean sendEmergency(String chatId, String title, String text) {
         try {
-            SendMessage msg = new SendMessage();
-            msg.setChatId(chatId);
-            msg.setText("ЧС\n\n" + title + "\n\n" + text);
-            execute(msg);
+            SendMessage message = new SendMessage();
+            message.setChatId(chatId);
+            message.setText("ЧС\n\n" + title + "\n\n" + text +
+                    "\n\nОтветьте:\nЯ в безопасности\nНужна помощь");
+            execute(message);
             return true;
         } catch (Exception e) {
             log.error("Telegram error: {}", e.getMessage());
@@ -162,10 +186,10 @@ public class EmergencyTelegramBot extends TelegramLongPollingBot {
 
     private void send(String chatId, String text) {
         try {
-            SendMessage msg = new SendMessage();
-            msg.setChatId(chatId);
-            msg.setText(text);
-            execute(msg);
+            SendMessage message = new SendMessage();
+            message.setChatId(chatId);
+            message.setText(text);
+            execute(message);
         } catch (Exception e) {
             log.error("Telegram error: {}", e.getMessage());
         }
