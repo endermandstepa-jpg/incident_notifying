@@ -1,9 +1,9 @@
 package com.emergency.alert.controller;
 
 import com.emergency.alert.entity.User;
-import com.emergency.alert.repository.UserRepository;
+import com.emergency.alert.storage.InMemoryDatabase;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.mockito.Mockito;
 
 import java.util.List;
 
@@ -11,15 +11,23 @@ import static org.junit.jupiter.api.Assertions.*;
 
 class UserControllerTest {
 
-    private final UserRepository repository = Mockito.mock(UserRepository.class);
+    private final UserController controller = new UserController();
 
-    private final UserController controller = new UserController(repository);
+    @BeforeEach
+    void setUp() {
+        InMemoryDatabase.USERS.clear();
+
+        User user = User.builder()
+                .id(1L)
+                .fullName("Test")
+                .messengerId("123")
+                .build();
+
+        InMemoryDatabase.USERS.put(1L, user);
+    }
 
     @Test
     void shouldReturnAllUsers() {
-
-        Mockito.when(repository.findAll())
-                .thenReturn(List.of(new User()));
 
         List<User> result = controller.all();
 

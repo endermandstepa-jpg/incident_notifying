@@ -2,87 +2,114 @@ package com.emergency.alert.service;
 
 import com.emergency.alert.dto.CreateEventRequest;
 import com.emergency.alert.entity.*;
-import com.emergency.alert.repository.*;
+import com.emergency.alert.storage.InMemoryDatabase;
 import com.emergency.alert.telegram.EmergencyTelegramBot;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
-import java.util.List;
 
 @Slf4j
 @Service
-@RequiredArgsConstructor
 public class EmergencyEventService {
 
-    private final EmergencyEventRepository eventRepository;
-    private final GeoZoneRepository geoZoneRepository;
-    private final UserRepository userRepository;
-    private final NotificationRepository notificationRepository;
     private final EmergencyTelegramBot bot;
     private final GeoService geoService;
 
-    @Transactional
+    // ❗ ВАЖНО: ЯВНЫЙ КОНСТРУКТОР (иначе тесты и Spring ломаются)
+    public EmergencyEventService(EmergencyTelegramBot bot, GeoService geoService) {
+        this.bot = bot;
+        this.geoService = geoService;
+    }
+
     public EmergencyEvent create(CreateEventRequest request) {
 
-        EmergencyEvent event = EmergencyEvent.builder()
-                .title(request.getTitle())
-                .messageText(request.getMessageText())
-                .priority(request.getPriority())
-                .status("ACTIVE")
-                .createdAt(LocalDateTime.now())
-                .build();
+        try {
+            if (request == null || request.getTitle() == null || request.getMessageText() == null) {
+                log.warn("Invalid request: {}", request);
+                return null;
+            }
 
-        event = eventRepository.save(event);
+            long eventId = InMemoryDatabase.EVENT_SEQ.getAndIncrement();
 
-        GeoZone zone = GeoZone.builder()
-                .eventId(event.getId())
-                .city(request.getCity())
-                .centerLat(request.getCenterLat())
-                .centerLng(request.getCenterLng())
-                .radiusKm(request.getRadiusKm())
-                .build();
-
-        geoZoneRepository.save(zone);
-
-        List<User> users = userRepository.findAll();
-        int notified = 0;
-
-        for (User user : users) {
-
-            if (user.getLatitude() == null || user.getLongitude() == null) continue;
-
-            boolean inside = geoService.insideRadius(
-                    user.getLatitude(),
-                    user.getLongitude(),
-                    zone.getCenterLat(),
-                    zone.getCenterLng(),
-                    zone.getRadiusKm()
-            );
-
-            if (!inside) continue;
-
-            boolean sent = bot.sendEmergency(
-                    user.getMessengerId(),
-                    event.getTitle(),
-                    event.getMessageText()
-            );
-
-            Notification n = Notification.builder()
-                    .eventId(event.getId())
-                    .userId(user.getId())
-                    .deliveryStatus(sent ? "SENT" : "FAILED")
-                    .sentAt(LocalDateTime.now())
+            EmergencyEvent event = EmergencyEvent.builder()
+                    .id(eventId)
+                    .title(request.getTitle())
+                    .messageText(request.getMessageText())
+                    .priority(request.getPriority())
+                    .status("ACTIVE")
+                    .createdAt(LocalDateTime.now())
                     .build();
 
-            notificationRepository.save(n);
-            notified++;
+            InMemoryDatabase.EVENTS.put(eventId, event);
+
+            long zoneId = InMemoryDatabase.ZONE_SEQ.getAndIncrement();
+
+            GeoZone zone = GeoZone.builder()
+                    .id(zoneId)
+                    .eventId(eventId)
+                    .city(request.getCity())
+                    .centerLat(request.getCenterLat())
+                    .centerLng(request.getCenterLng())
+                    .radiusKm(request.getRadiusKm())
+                    .build();
+
+            InMemoryDatabase.ZONES.put(zoneId, zone);
+
+            int notified = 0;
+
+            for (User user : InMemoryDatabase.USERS.values()) {
+
+                try {
+                    if (user.getLatitude() == null || user.getLongitude() == null) continue;
+
+                    boolean inside = geoService.insideRadius(
+                            user.getLatitude(),
+                            user.getLongitude(),
+                            zone.getCenterLat(),
+                            zone.getCenterLng(),
+                            zone.getRadiusKm()
+                    );
+
+                    if (!inside) continue;
+
+                    boolean sent = false;
+
+                    try {
+                        sent = bot.sendEmergency(
+                                user.getMessengerId(),
+                                event.getTitle(),
+                                event.getMessageText()
+                        );
+                    } catch (Exception e) {
+                        log.error("Telegram failed", e);
+                    }
+
+                    long notifId = InMemoryDatabase.NOTIF_SEQ.getAndIncrement();
+
+                    Notification n = Notification.builder()
+                            .id(notifId)
+                            .eventId(eventId)
+                            .userId(user.getId())
+                            .deliveryStatus(sent ? "SENT" : "FAILED")
+                            .sentAt(LocalDateTime.now())
+                            .build();
+
+                    InMemoryDatabase.NOTIFICATIONS.put(notifId, n);
+                    notified++;
+
+                } catch (Exception e) {
+                    log.error("User processing failed", e);
+                }
+            }
+
+            log.info("EVENT CREATED: {} | notified={}", eventId, notified);
+
+            return event;
+
+        } catch (Exception e) {
+            log.error("EVENT CREATION FAILED", e);
+            return null;
         }
-
-        log.info("Event {} created. Notified {}", event.getId(), notified);
-
-        return event;
     }
 }
