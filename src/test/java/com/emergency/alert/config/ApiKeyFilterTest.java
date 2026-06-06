@@ -7,10 +7,10 @@ import static org.junit.jupiter.api.Assertions.*;
 
 class ApiKeyFilterTest {
 
-    private final ApiKeyFilter filter = new ApiKeyFilter();
-
     @Test
     void shouldRejectRequestWithoutApiKey() throws Exception {
+
+        ApiKeyFilter filter = new ApiKeyFilter();
 
         MockHttpServletRequest request = new MockHttpServletRequest();
         request.setRequestURI("/api/test");

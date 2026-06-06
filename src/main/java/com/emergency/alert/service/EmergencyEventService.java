@@ -4,7 +4,6 @@ import com.emergency.alert.dto.CreateEventRequest;
 import com.emergency.alert.entity.*;
 import com.emergency.alert.storage.InMemoryDatabase;
 import com.emergency.alert.telegram.EmergencyTelegramBot;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
@@ -12,11 +11,16 @@ import java.time.LocalDateTime;
 
 @Slf4j
 @Service
-@RequiredArgsConstructor
 public class EmergencyEventService {
 
     private final EmergencyTelegramBot bot;
     private final GeoService geoService;
+
+    // ❗ ВАЖНО: ЯВНЫЙ КОНСТРУКТОР (иначе тесты и Spring ломаются)
+    public EmergencyEventService(EmergencyTelegramBot bot, GeoService geoService) {
+        this.bot = bot;
+        this.geoService = geoService;
+    }
 
     public EmergencyEvent create(CreateEventRequest request) {
 
